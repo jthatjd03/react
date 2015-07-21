@@ -15,6 +15,8 @@ var path = require('path');
 var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
+var http = require('http');
+var giphy = require('giphy-wrapper')('YOUR_API_KEY');
 
 app.set('port', (process.env.PORT || 3000));
 
@@ -29,8 +31,9 @@ app.get('/comments.json', function(req, res) {
   });
 });
 
-app.post('/comments.json', function(req, res) {
-  fs.readFile('comments.json', function(err, data) {
+app.post('/comments.json', function(req, res) {  
+  // save to the file
+  fs.readFile('comments.json', function(err, data) {    
     var comments = JSON.parse(data);
     comments.unshift(req.body);
     fs.writeFile('comments.json', JSON.stringify(comments, null, 4), function(err) {
@@ -41,44 +44,22 @@ app.post('/comments.json', function(req, res) {
   });
 });
 
-app.get('/comments.json', function(req, res) {
-  fs.readFile('comments.json', function(err, data) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(data);
-  });
+app.get('/giphy', function (request, response) {    
+    var optionsget = {
+        host: 'api.giphy.com',
+        port: 80,
+        path: '/v1/gifs/search?q=' + request.query.text + '&api_key=dc6zaTOxFJmzC',
+        method: 'GET'        
+    };
+    var msg = '';
+    var statusCode = 0;
+        
+    // do the GET request
+    var reqGet = setupSimpleRequestHandlers(response, optionsget);
+    console.log('reqGet ' + reqGet.data);
+
+    reqGet.end();    
 });
-
-app.get('/hotels', function (request, response) {
-
-        var optionsget = {
-            host: 'http://getaways-content-service-vip.snc1/v2/getaways/content/hotelId?idType=uuid&idValue=0273fdce-d2c9-4966-a7d3-8e0983e36727',
-            port: 80,
-            path: 
-            method: 'GET',
-            headers: {
-                'Groupon-User-Id': 324234234,
-                'X-client-roles': 'android',
-                'X-Request-Id': request.param('xid')
-            }
-        };
-
-        var queryString = url.parse(request.url, false).query;
-        console.log(queryString);
-
-        optionsget.path += "?" + queryString;
-        console.log(optionsget.path);
-        response.header('logPath', optionsget.host + optionsget.path);
-
-        var msg = '';
-        var statusCode = 0;
-
-        console.info('SEARCH::: Options prepared:');
-        console.info('Do the GET call');
-
-        // do the GET request
-        var reqGet = setupSimpleRequestHandlers(response, optionsget);
-        reqGet.end();
-    });
 
 function setupSimpleRequestHandlers(response, requestOptions) {
     var startTime, endTime;
@@ -97,8 +78,8 @@ function setupSimpleRequestHandlers(response, requestOptions) {
         });
         res.on('end', function () {
             endTime = new Date();
-            console.info('\n\nCall completed');
-            response.header('logTime', endTime - startTime);
+            console.info('\n\nCall completed');        
+            
             response.status(res.statusCode).json(responseJson(res, msg));
         });
     });
@@ -107,10 +88,16 @@ function setupSimpleRequestHandlers(response, requestOptions) {
         console.error(err);
         response.status(500).json({message: err});
     });
-
+    
     return reqGet;
 }
 
+function responseJson(response, msg) {
+    // console.info('msg' + msg);
+
+    var statusCode = response.statusCode;
+    return JSON.parse(msg);
+}
 
 app.listen(app.get('port'), function() {
   console.log('Server started: http://localhost:' + app.get('port') + '/');

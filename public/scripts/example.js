@@ -10,15 +10,33 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+ var divStyle={ 
+    width: '120px',
+    height: '120px'  
+  };
 var Comment = React.createClass({
+ 
   render: function() {
-    var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
+    // var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
+    return (
+      <div>
+        <div className="comment">
+          <h2 className="commentAuthor">
+            {this.props.author}, {this.props.date}
+          </h2>
+        </div>
+        {this.props.text}
+        <img style={divStyle} src={this.props.gifUrl}/>
+      </div>
+    );
+  }
+});
+
+var CommentImage = React.createClass({
+  render: function() {    
     return (
       <div className="comment">
-        <h2 className="commentAuthor">
-          {this.props.author}, {this.props.date}
-        </h2>
-        <span dangerouslySetInnerHTML={{__html: rawMarkup}} />
+        
       </div>
     );
   }
@@ -56,7 +74,20 @@ var CommentBox = React.createClass({
           console.error(this.props.url, status, err.toString());
         }.bind(this)
       });
-    });
+      $.ajax({
+        url: '/giphy',
+        dataType: 'json',
+        type: 'GET',
+        data: comment,
+        success: function(data) {
+          window.alert(data.data[0].url);
+          this.setState({data: data});
+        }.bind(this),
+        error: function(xhr, status, err) {
+          console.error(this.props.url, status, err.toString());
+        }.bind(this)
+      });
+    });    
   },
   getInitialState: function() {
     return {data: []};
@@ -83,9 +114,10 @@ var CommentList = React.createClass({
         // `key` is a React-specific concept and is not mandatory for the
         // purpose of this tutorial. if you're curious, see more here:
         // http://facebook.github.io/react/docs/multiple-components.html#dynamic-children
-        <Comment author={comment.author} key={index} date={comment.date}> 
-          {comment.text} 
-        </Comment>
+        <div>
+          <Comment author={comment.author} key={index} date={comment.date} text={comment.text} gifUrl={comment.gifUrl}>                     
+          </Comment>          
+        </div>
       );
     });
     return (
