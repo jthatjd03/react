@@ -54,12 +54,10 @@ app.get('/giphy', function (request, response) {
         host: 'api.giphy.com',
         port: 80,
         path: '/v1/gifs/search?offset=' + offset + '&q=' + request.query.text.split(' ').join('+') + '&api_key=dc6zaTOxFJmzC&limit=1&rating=pg-13',
-        //path: '/v1/gifs/search?q=hi&api_key=dc6zaTOxFJmzC',
         method: 'GET'        
     };
     var msg = '';
     var statusCode = 0;
-    console.log(optionsget.path);
         
     // do the GET request
     var reqGet = setupSimpleRequestHandlers(response, optionsget);
@@ -129,6 +127,7 @@ function setupSecureRequestHandlers(response, requestOptions) {
             msg += chunk;
         });
         res.on('end', function () {
+
             console.info('\n\nCall completed');        
             
             response.status(res.statusCode).json(responseJson(res, msg));
@@ -139,13 +138,13 @@ function setupSecureRequestHandlers(response, requestOptions) {
         console.error(err);
         response.status(500).json({message: err});
     });
-    console.log(reqGet);
+
     
     return reqGet;
 } 
 
 function responseJson(response, msg) {
-    console.info('msg' + msg);
+
 
     var statusCode = response.statusCode;
     return JSON.parse(msg);

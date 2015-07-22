@@ -44,8 +44,7 @@ var Comment = React.createClass({
             </tr>
           </tbody>
         </table>            
-        <img className='col-md-2' style={divStyle} src={this.props.gifUrl}/>
-        
+        <img className='col-md-2' style={divStyle} src={this.props.gifUrl}/>        
       </div>
     );
   }
