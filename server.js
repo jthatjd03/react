@@ -16,7 +16,9 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
 var http = require('http');
-var giphy = require('giphy-wrapper')('YOUR_API_KEY');
+var https = require('http');
+
+var googleTranslate = require('google-translate')('AIzaSyBTtH6Mna2tpcaFZ2zmo6l8wAZqcDO5rzw');
 
 app.set('port', (process.env.PORT || 3000));
 
@@ -44,11 +46,34 @@ app.post('/comments.json', function(req, res) {
   });
 });
 
-app.get('/giphy', function (request, response) {    
+app.get('/giphy', function (request, response) {
+    console.log(request);
+    var offset = Math.floor(Math.random() * 5);
+
     var optionsget = {
         host: 'api.giphy.com',
         port: 80,
-        path: '/v1/gifs/search?q=' + request.query.text + '&api_key=dc6zaTOxFJmzC',
+        path: '/v1/gifs/search?offset=' + offset + '&q=' + request.query.text.split(' ').join('+') + '&api_key=dc6zaTOxFJmzC&limit=1&rating=pg-13',
+        //path: '/v1/gifs/search?q=hi&api_key=dc6zaTOxFJmzC',
+        method: 'GET'        
+    };
+    var msg = '';
+    var statusCode = 0;
+    console.log(optionsget.path);
+        
+    // do the GET request
+    var reqGet = setupSimpleRequestHandlers(response, optionsget);
+    console.log('reqGet ' + reqGet.data);
+
+    reqGet.end();    
+});
+
+app.get('/sentimentAnalysis', function (request, response) {
+ 
+    var optionsget = {
+        host: 'api.idolondemand.com',
+        port: 80,
+        path: '/1/api/sync/analyzesentiment/v1?text=' + request.query.text.split(' ').join('+') + '&apikey=7cd8a69d-0c00-4c64-a9bf-f922bb361a8f',        
         method: 'GET'        
     };
     var msg = '';
@@ -61,25 +86,23 @@ app.get('/giphy', function (request, response) {
     reqGet.end();    
 });
 
+app.get('/translate', function (request, response) {
+    googleTranslate.translate(request.query.text, 'en', function(err, translation) {
+    console.log(translation);
+    response.json(translation);  
+});
+});
+
 function setupSimpleRequestHandlers(response, requestOptions) {
-    var startTime, endTime;
-    startTime = new Date();
-    console.log(requestOptions);
     var reqGet = http.request(requestOptions, function (res) {
 
         res.setEncoding('utf8');
-
-        console.log("statusCode: ", res.statusCode);
-        console.log("headers: ", res.headers);
 
         var msg = '';
         res.on('data', function (chunk) {
             msg += chunk;
         });
         res.on('end', function () {
-            endTime = new Date();
-            console.info('\n\nCall completed');        
-            
             response.status(res.statusCode).json(responseJson(res, msg));
         });
     });
@@ -92,8 +115,37 @@ function setupSimpleRequestHandlers(response, requestOptions) {
     return reqGet;
 }
 
+function setupSecureRequestHandlers(response, requestOptions) {
+
+    var reqGet = https.request(requestOptions, function (res) {
+
+        res.setEncoding('utf8');
+
+        // console.log("statusCode: ", res.statusCode);
+        // console.log("headers: ", res.headers);
+
+        var msg = '';
+        res.on('data', function (chunk) {
+            msg += chunk;
+        });
+        res.on('end', function () {
+            console.info('\n\nCall completed');        
+            
+            response.status(res.statusCode).json(responseJson(res, msg));
+        });
+    });
+
+    reqGet.on('error', function (err) {
+        console.error(err);
+        response.status(500).json({message: err});
+    });
+    console.log(reqGet);
+    
+    return reqGet;
+} 
+
 function responseJson(response, msg) {
-    // console.info('msg' + msg);
+    console.info('msg' + msg);
 
     var statusCode = response.statusCode;
     return JSON.parse(msg);

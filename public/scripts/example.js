@@ -10,32 +10,41 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
- var divStyle={ 
-    width: '120px',
-    height: '120px'  
-  };
+var divStyle={ 
+    width: '250px',
+    height: '200px'  
+};
+
+
 var Comment = React.createClass({
- 
+
   render: function() {
     // var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
+    var css = 'success';
+    if(this.props.sentiment=='negative'){
+      css = 'danger';      
+    }
+    if(this.props.sentiment=='neutral'){
+      css = 'active';
+    }
     return (
-      <div>
+ 
+  // same final string, but much cleaner
+  // return <div className={classes}>Great, I'll be there.</div>;
+      <div className="row">                           
         <div className="comment">
           <h2 className="commentAuthor">
             {this.props.author}, {this.props.date}
           </h2>
         </div>
-        {this.props.text}
-        <img style={divStyle} src={this.props.gifUrl}/>
-      </div>
-    );
-  }
-});
-
-var CommentImage = React.createClass({
-  render: function() {    
-    return (
-      <div className="comment">
+        <table className='table'>
+          <tbody>
+            <tr className={css}>
+            <td>{this.props.text}</td>
+            </tr>
+          </tbody>
+        </table>            
+        <img className='col-md-2' style={divStyle} src={this.props.gifUrl}/>
         
       </div>
     );
@@ -74,19 +83,6 @@ var CommentBox = React.createClass({
           console.error(this.props.url, status, err.toString());
         }.bind(this)
       });
-      $.ajax({
-        url: '/giphy',
-        dataType: 'json',
-        type: 'GET',
-        data: comment,
-        success: function(data) {
-          window.alert(data.data[0].url);
-          this.setState({data: data});
-        }.bind(this),
-        error: function(xhr, status, err) {
-          console.error(this.props.url, status, err.toString());
-        }.bind(this)
-      });
     });    
   },
   getInitialState: function() {
@@ -94,7 +90,7 @@ var CommentBox = React.createClass({
   },
   componentDidMount: function() {
     this.loadCommentsFromServer();
-    setInterval(this.loadCommentsFromServer, this.props.pollInterval);
+    //setInterval(this.loadCommentsFromServer, this.props.pollInterval);
   },
   render: function() {
     return (
@@ -115,7 +111,7 @@ var CommentList = React.createClass({
         // purpose of this tutorial. if you're curious, see more here:
         // http://facebook.github.io/react/docs/multiple-components.html#dynamic-children
         <div>
-          <Comment author={comment.author} key={index} date={comment.date} text={comment.text} gifUrl={comment.gifUrl}>                     
+          <Comment author={comment.author} key={index} date={comment.date} text={comment.text} gifUrl={comment.gifUrl} sentiment={comment.sentiment} sentimentScore = {comment.sentimentScore}>                     
           </Comment>          
         </div>
       );
@@ -141,22 +137,79 @@ var CommentForm = React.createClass({
     var mm = today.getMonth()+1; 
     var yyyy = today.getFullYear(); 
     var todayDate = mm + '/' + dd +'/' + yyyy
-    this.props.onCommentSubmit({author: author, text: text, date: todayDate});
+    var gifUrl = '';
+    var sentiment = '';
+    var sentimentScore = 0;         
+     $.ajax({
+      async: false,
+      url: '/translate',
+      dataType: 'json',
+      type: 'GET',
+      data: {'text' : text},
+      success: function(data) {                
+        text=data.translatedText; 
+        if(data.detectedSourceLanguage!='en'){
+          window.alert('I think you wanted to say: ' + text);  
+        }                 
+        //this.setState({data: data});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    }); 
+    $.ajax({
+      async: false,
+      url: '/giphy',
+      dataType: 'json',
+      type: 'GET',
+      data: {'text' : text},
+      success: function(data) {
+        gifUrl=data.data[0].images.fixed_height.url;             
+        this.setState({data: data});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });      
+     $.ajax({
+      async: false,
+      url: '/sentimentAnalysis',
+      dataType: 'json',
+      type: 'GET',
+      data: {'text' : text},
+      success: function(data) {                    
+        sentiment=data.aggregate.sentiment;          
+        sentimentScore=data.aggregate.score*100;     
+        sentimentScore=Math.round(sentimentScore * 100) / 100
+        //this.setState({data: data});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    }); 
+
+    this.props.onCommentSubmit({author: author, text: text, date: todayDate, gifUrl: gifUrl, sentiment: sentiment, sentimentScore: sentimentScore});
     React.findDOMNode(this.refs.author).value = '';
     React.findDOMNode(this.refs.text).value = '';
   },
   render: function() {
     return (
       <form className="commentForm" onSubmit={this.handleSubmit}>
-        <input type="text" placeholder="Your name" ref="author" />
-        <input type="text" placeholder="Say something..." ref="text" />
-        <input type="submit" value="Post" />
+        <div className='form-group'>
+          <label for="nameInput">Name</label>
+          <input type="text" className='form-control' placeholder="Your name" ref="author" />
+          <label for="commentInput">Comment</label>
+          <input type="text" className='form-control search-query' placeholder="Say something..." ref="text" />
+          <p/><p/><p/><p/>
+          <p><input className='btn btn-primary' type="submit" value="Post" /></p>
+        </div>
       </form>
     );
   }
 });
 
 React.render(
-  <CommentBox url="comments.json" pollInterval={2000} />,
+  // <CommentBox url="comments.json" pollInterval={2000} />,
+  <CommentBox url="comments.json"/>,
   document.getElementById('content')
 );
