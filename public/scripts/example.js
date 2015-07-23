@@ -15,10 +15,47 @@ var divStyle={
     height: '200px'  
 };
 
+var tdStyle = {
+    width: '250px',
+    height: '200px' 
+ };
+
+
+
+const suburbs = ['Cheltenham', 'Mill Park', 'Mordialloc', 'Nunawading'];
+
+function getSuggestions(input, callback) {
+  const regex = new RegExp('^' + input, 'i');
+  const suggestions = suburbs.filter(suburb => regex.test(suburb));
+
+  setTimeout(() => callback(null, suggestions), 300); // Emulate API call
+}
+
+var VoteButton = React.createClass({
+  getInitialState: function() {
+    return {count: this.props.voteScore};
+  },
+  handleUpClick: function(event) {
+    this.setState({count: parseInt(this.state.count)+1});
+  },
+  handleDownClick: function(event) {
+    this.setState({count: parseInt(this.state.count)-1});
+  },  
+  render: function() {
+    return (          
+         <div className="vote circle">
+          <div className="increment up" onClick={this.handleUpClick}></div>
+          <div className="increment down" onClick={this.handleDownClick}></div>
+          <div className="count">{this.state.count}</div>            
+        </div>          
+    );
+  }
+});
 
 var Comment = React.createClass({
 
   render: function() {
+
     // var rawMarkup = marked(this.props.children.toString(), {sanitize: true});
     var css = 'success';
     if(this.props.sentiment=='negative'){
@@ -43,8 +80,11 @@ var Comment = React.createClass({
             <td>{this.props.text}</td>
             </tr>
           </tbody>
-        </table>            
-        <img className='col-md-2' style={divStyle} src={this.props.gifUrl}/>        
+        </table> 
+        <Autosuggest suggestions={getSuggestions} />
+        <img className='col-md-2' style={divStyle} src={this.props.gifUrl}/>
+        <img className='col-md-2' style={divStyle} src={this.props.memeUrl}/>        
+        <VoteButton voteScore = {this.props.voteScore}/>
       </div>
     );
   }
@@ -94,9 +134,9 @@ var CommentBox = React.createClass({
   render: function() {
     return (
       <div className="commentBox">
-        <h1>Comments</h1>
+        <h1>Andys Awesome App</h1>
         <CommentForm onCommentSubmit={this.handleCommentSubmit} />
-        <CommentList data={this.state.data} />      
+        <CommentList data={this.state.data} />       
       </div>
     );
   }
@@ -110,7 +150,7 @@ var CommentList = React.createClass({
         // purpose of this tutorial. if you're curious, see more here:
         // http://facebook.github.io/react/docs/multiple-components.html#dynamic-children
         <div>
-          <Comment author={comment.author} key={index} date={comment.date} text={comment.text} gifUrl={comment.gifUrl} sentiment={comment.sentiment} sentimentScore = {comment.sentimentScore}>                     
+          <Comment key={comment} author={comment.author} key={index} date={comment.date} text={comment.text} gifUrl={comment.gifUrl} sentiment={comment.sentiment} sentimentScore = {comment.sentimentScore} voteScore = {comment.voteScore} memeUrl={comment.memeUrl}>                     
           </Comment>          
         </div>
       );
@@ -138,7 +178,9 @@ var CommentForm = React.createClass({
     var todayDate = mm + '/' + dd +'/' + yyyy
     var gifUrl = '';
     var sentiment = '';
-    var sentimentScore = 0;         
+    var sentimentScore = 0;   
+    var voteScore = 0;     
+    var memeUrl = ''; 
      $.ajax({
       async: false,
       url: '/translate',
@@ -163,8 +205,8 @@ var CommentForm = React.createClass({
       type: 'GET',
       data: {'text' : text},
       success: function(data) {
-        gifUrl=data.data[0].images.fixed_height.url;             
-        this.setState({data: data});
+        gifUrl=data.data[0].images.fixed_height.url;
+        //this.setState({data: data});
       }.bind(this),
       error: function(xhr, status, err) {
         console.error(this.props.url, status, err.toString());
@@ -186,14 +228,28 @@ var CommentForm = React.createClass({
         console.error(this.props.url, status, err.toString());
       }.bind(this)
     }); 
+     $.ajax({
+      async: false,
+      url: '/meme',
+      dataType: 'json',
+      type: 'GET',
+      data: {'text' : text},
+      success: function(data) {                    
+        memeUrl=data.data.url;   
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });      
 
-    this.props.onCommentSubmit({author: author, text: text, date: todayDate, gifUrl: gifUrl, sentiment: sentiment, sentimentScore: sentimentScore});
+    this.props.onCommentSubmit({author: author, text: text, date: todayDate, gifUrl: gifUrl, sentiment: sentiment, sentimentScore: sentimentScore, voteScore: voteScore, memeUrl: memeUrl});
     React.findDOMNode(this.refs.author).value = '';
     React.findDOMNode(this.refs.text).value = '';
   },
   render: function() {
     return (
       <form className="commentForm" onSubmit={this.handleSubmit}>
+      <Autosuggest suggestions={getSuggestions} />
         <div className='form-group'>
           <label for="nameInput">Name</label>
           <input type="text" className='form-control' placeholder="Your name" ref="author" />
@@ -212,3 +268,4 @@ React.render(
   <CommentBox url="comments.json"/>,
   document.getElementById('content')
 );
+
