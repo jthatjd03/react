@@ -10,6 +10,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
 var divStyle={ 
     width: '250px',
     height: '200px'  
@@ -19,17 +20,6 @@ var tdStyle = {
     width: '250px',
     height: '200px' 
  };
-
-
-
-const suburbs = ['Cheltenham', 'Mill Park', 'Mordialloc', 'Nunawading'];
-
-function getSuggestions(input, callback) {
-  const regex = new RegExp('^' + input, 'i');
-  const suggestions = suburbs.filter(suburb => regex.test(suburb));
-
-  setTimeout(() => callback(null, suggestions), 300); // Emulate API call
-}
 
 var VoteButton = React.createClass({
   getInitialState: function() {
@@ -81,7 +71,7 @@ var Comment = React.createClass({
             </tr>
           </tbody>
         </table> 
-        <Autosuggest suggestions={getSuggestions} />
+        
         <img className='col-md-2' style={divStyle} src={this.props.gifUrl}/>
         <img className='col-md-2' style={divStyle} src={this.props.memeUrl}/>        
         <VoteButton voteScore = {this.props.voteScore}/>
@@ -249,7 +239,6 @@ var CommentForm = React.createClass({
   render: function() {
     return (
       <form className="commentForm" onSubmit={this.handleSubmit}>
-      <Autosuggest suggestions={getSuggestions} />
         <div className='form-group'>
           <label for="nameInput">Name</label>
           <input type="text" className='form-control' placeholder="Your name" ref="author" />
